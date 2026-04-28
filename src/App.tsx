@@ -46,6 +46,14 @@ export default function App() {
 
       <div className="wrap">
 
+        {/* ── 00 NEWS ─────────────────────────────── */}
+        <div className="sect">
+          <span className="num">00</span>
+          <h2>Today News &mdash; 오늘의 뉴스</h2>
+          <span className="desc">네이버 검색 API · 경제 · 사회</span>
+        </div>
+        <NewsPanel />
+
         {/* ── 01 COLOR ────────────────────────────── */}
         <div className="sect">
           <span className="num">01</span>
