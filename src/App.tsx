@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import { NewsPanel } from './components/news/NewsPanel'
+import { EconNewsCards } from './components/news/EconNewsCards'
 
 const HIGHLIGHT_COLORS = ['#8be8d4', '#ffe14a', '#ff9bd8', '#a8ff8a', '#ffb37a']
 const COVER_BGS = [
