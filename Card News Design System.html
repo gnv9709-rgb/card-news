@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>카드뉴스 디자인 시스템</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* ── Surfaces ──────────────────────────────────── */
+    --ink:        #0d0d10;
+    --ink-2:      #1a1a1f;
+    --paper:      #f4ede0;
+    --paper-2:    #e8dcc6;
+
+    --bg-noir:    #15151a;
+    --bg-deep:    #0f1d3a;
+    --bg-royal:   #133fa6;
+    --bg-bone:    #efe6d3;
+
+    /* ── Accents ───────────────────────────────────── */
+    --mint:       #8be8d4;
+    --mint-ink:   #11362f;
+    --acid:       #ffe14a;
+    --blood:      #c2392b;
+    --bruise:     #6b4ea8;
+
+    /* ── Typography ────────────────────────────────── */
+    --f-display: "Black Han Sans", "Noto Sans KR", sans-serif;
+    --f-body:    "Noto Sans KR", system-ui, sans-serif;
+    --f-hand:    "Gowun Dodum", "Noto Sans KR", sans-serif;
+    --f-mono:    "JetBrains Mono", ui-monospace, monospace;
+
+    /* ── Spacing ───────────────────────────────────── */
+    --s1: 4px;   --s2: 8px;   --s3: 12px;  --s4: 16px;
+    --s5: 24px;  --s6: 32px;  --s7: 48px;  --s8: 64px;  --s9: 96px;
+
+    /* ── Card geometry ─────────────────────────────── */
+    --card-w: 640px;
+    --card-h: 800px;
+
+    /* ── Grain intensity (tweakable) ───────────────── */
+    --grain: .55;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+  }
+  body {
+    padding: 64px 48px 120px;
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, rgba(0,0,0,.05), transparent 60%),
+      radial-gradient(900px 500px at 110% 30%, rgba(0,0,0,.04), transparent 60%);
+  }
+
+  /* ─── Page header ──────────────────────────────────── */
+  .pagehead {
+    max-width: 1320px;
+    margin: 0 auto 56px;
+    display: grid;
+    grid-template-columns: 1.2fr .8fr;
+    gap: 48px;
+    align-items: end;
+    border-bottom: 1px solid rgba(0,0,0,.15);
+    padding-bottom: 32px;
+  }
+  .pagehead h1 {
+    font-family: var(--f-display);
+    font-size: 80px;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    margin: 0;
+  }
+  .pagehead h1 em {
+    font-style: normal;
+    background: var(--mint);
+    color: var(--mint-ink);
+    padding: 2px .18em 6px;
+    box-shadow: 4px 4px 0 var(--ink);
+    white-space: nowrap;
+    display: inline-block;
+    margin-top: 8px;
+  }
+  .pagehead .sub {
+    font-family: var(--f-mono);
+    font-size: 13px;
+    line-height: 1.7;
+    color: rgba(0,0,0,.7);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .pagehead .meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: rgba(0,0,0,.55);
+    margin-top: 12px;
+  }
+  .pagehead .meta b { color: var(--ink); font-weight: 600; }
+
+  .wrap { max-width: 1320px; margin: 0 auto; }
+
+  /* ─── Section header ───────────────────────────────── */
+  .sect {
+    margin: 96px 0 32px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .sect h2 {
+    font-family: var(--f-display);
+    font-size: 40px;
+    margin: 0;
+    letter-spacing: -.005em;
+  }
+  .sect .num {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 4px 8px;
+    border-radius: 2px;
+    transform: rotate(-2deg);
+    display: inline-block;
+  }
+  .sect .desc {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: rgba(0,0,0,.6);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-left: auto;
+  }
+
+  /* ─── Token grids ──────────────────────────────────── */
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .sw {
+    border: 1px solid rgba(0,0,0,.15);
+    background: var(--paper);
+    overflow: hidden;
+  }
+  .sw .chip {
+    height: 140px;
+    position: relative;
+  }
+  .sw .chip::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.5'/></svg>");
+    mix-blend-mode: overlay;
+    opacity: .35;
+  }
+  .sw .lbl {
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--f-mono);
+    font-size: 11px;
+  }
+  .sw .lbl b { font-weight: 600; }
+  .sw .lbl span { color: rgba(0,0,0,.55); }
+
+  /* ─── Type specimens ───────────────────────────────── */
+  .type-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 0;
+    border: 1px solid rgba(0,0,0,.15);
+    background: var(--paper);
+  }
+  .type-row { display: contents; }
+  .type-row > div {
+    padding: 24px;
+    border-top: 1px solid rgba(0,0,0,.1);
+  }
+  .type-row:first-child > div { border-top: 0; }
+  .type-row .label {
+    background: rgba(0,0,0,.03);
+    font-family: var(--f-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: rgba(0,0,0,.65);
+    line-height: 1.5;
+  }
+  .type-row .label b {
+    display: block;
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .display-xl { font-family: var(--f-display); font-size: 72px; line-height: .95; letter-spacing: -.01em; margin: 0; }
+  .display-l  { font-family: var(--f-display); font-size: 52px; line-height: 1.0;  margin: 0; }
+  .body-l     { font-family: var(--f-body);    font-size: 24px; line-height: 1.5;  margin: 0; font-weight: 500; }
+  .body-m     { font-family: var(--f-body);    font-size: 18px; line-height: 1.6;  margin: 0; }
+  .hand       { font-family: var(--f-hand);    font-size: 22px; line-height: 1.55; margin: 0; }
+  .mono       { font-family: var(--f-mono);    font-size: 13px; line-height: 1.6;  margin: 0; letter-spacing: .03em; }
+
+  /* ─── Highlight ────────────────────────────────────── */
+  .hl {
+    background: var(--mint);
+    color: var(--mint-ink);
+    padding: 2px 8px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  .hl-shadow { box-shadow: 4px 4px 0 var(--ink); }
+  .hl-tilt   { display: inline-block; transform: rotate(-1.5deg); }
+
+  /* ─── Stickers / paper cutouts ────────────────────── */
+  .sticker {
+    position: relative;
+    display: inline-block;
+    background: var(--paper);
+    padding: 6px 10px 8px;
+    box-shadow:
+      0 0 0 6px var(--paper),
+      0 0 0 7px rgba(0,0,0,.25),
+      6px 8px 18px rgba(0,0,0,.35);
+    transform: rotate(-2deg);
+  }
+  .sticker.flat {
+    box-shadow:
+      0 0 0 6px var(--paper),
+      0 0 0 7px rgba(0,0,0,.25);
+    transform: none;
+  }
+
+  /* ─── Texture overlays ─────────────────────────────── */
+  .grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+    opacity: var(--grain, .55);
+    z-index: 8;
+  }
+  .scratch::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9;
+    background-image:
+      linear-gradient(91deg, transparent 0 30%, rgba(255,255,255,.04) 30.1% 30.3%, transparent 30.4% 60%, rgba(255,255,255,.05) 60.1% 60.2%, transparent 60.3% 80%, rgba(255,255,255,.03) 80.1% 80.2%, transparent 80.3%),
+      radial-gradient(2px 80px at 12% 30%, rgba(255,255,255,.07), transparent 70%),
+      radial-gradient(1px 60px at 85% 70%, rgba(255,255,255,.08), transparent 70%);
+    mix-blend-mode: screen;
+    opacity: .7;
+  }
+
+  /* ─── Checker-noir tile ────────────────────────────── */
+  .checker-noir {
+    background-color: #15151a;
+    background-image:
+      conic-gradient(from 18deg at 30% 40%, #0a0a0c 0 25%, #1d1d23 0 50%, #0a0a0c 0 75%, #1d1d23 0),
+      conic-gradient(from -22deg at 70% 70%, #18181d 0 25%, #060608 0 50%, #18181d 0 75%, #060608 0);
+    background-size: 280px 280px, 220px 220px;
+    background-position: 0 0, 60px 40px;
+    background-blend-mode: multiply;
+  }
+
+  /* ─── Card frame ───────────────────────────────────── */
+  .cards-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, var(--card-w));
+    gap: 32px;
+  }
+  .card {
+    width: var(--card-w);
+    height: var(--card-h);
+    position: relative;
+    overflow: hidden;
+    color: var(--paper);
+    box-shadow:
+      0 30px 60px -20px rgba(0,0,0,.35),
+      0 8px 18px rgba(0,0,0,.18);
+    isolation: isolate;
+  }
+  .card.bg-noir  { background: #15151a; }
+  .card.bg-deep  { background: var(--bg-deep); }
+  .card.bg-royal { background: var(--bg-royal); }
+  .card.bg-bone  { background: var(--bg-bone); color: var(--ink); }
+
+  .card .pad {
+    position: absolute;
+    inset: 56px;
+    z-index: 5;
+  }
+  .card .pageno {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    z-index: 7;
+  }
+  .card .pageno i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.35);
+    display: block;
+  }
+  .card.bg-bone .pageno i { background: rgba(0,0,0,.3); }
+  .card .pageno i.on { background: currentColor; }
+
+  /* ─── Placeholder image cutouts ────────────────────── */
+  .cutout {
+    position: relative;
+    background:
+      repeating-linear-gradient(45deg, rgba(0,0,0,.85) 0 8px, rgba(0,0,0,.7) 8px 16px),
+      #1a1a1f;
+    color: var(--paper);
+    padding: 0;
+    border: 6px solid var(--paper);
+    box-shadow: 6px 8px 22px rgba(0,0,0,.45);
+    display: grid;
+    place-items: center;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .cutout span {
+    background: rgba(0,0,0,.55);
+    padding: 4px 8px;
+    border: 1px dashed rgba(255,255,255,.4);
+  }
+
+  /* halftone variant */
+  .halftone {
+    background:
+      radial-gradient(circle at 25% 25%, rgba(0,0,0,.85) 22%, transparent 23%) 0 0/8px 8px,
+      radial-gradient(circle at 25% 25%, rgba(0,0,0,.85) 22%, transparent 23%) 4px 4px/8px 8px,
+      var(--paper);
+    border: 6px solid var(--paper);
+    color: var(--ink-2);
+    box-shadow: 6px 8px 22px rgba(0,0,0,.45);
+  }
+
+  /* ─── Arrow doodle ─────────────────────────────────── */
+  .arrow-down {
+    width: 16px;
+    height: 80px;
+    background: var(--paper);
+    clip-path: polygon(40% 0, 60% 0, 60% 70%, 90% 70%, 50% 100%, 10% 70%, 40% 70%);
+    opacity: .9;
+  }
+  .arrow-down.acid  { background: var(--acid); }
+  .arrow-down.mint  { background: var(--mint); }
+  .arrow-down.tiny  { height: 56px; }
+  .arrow-down.ink   { background: var(--ink); }
+
+  /* ─── Components ───────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .panel {
+    background: var(--paper);
+    border: 1px solid rgba(0,0,0,.15);
+    padding: 24px;
+  }
+  .panel h4 {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: rgba(0,0,0,.55);
+    margin: 0 0 16px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ─── Stamp ─────────────────────────────────────────── */
+  .stamp {
+    display: inline-block;
+    font-family: var(--f-display);
+    color: var(--blood);
+    border: 2px solid var(--blood);
+    padding: 6px 12px 4px;
+    transform: rotate(-6deg);
+    letter-spacing: .04em;
+  }
+
+  /* ─── Tweaks panel ─────────────────────────────────── */
+  .tweaks {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 280px;
+    padding: 16px;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--f-mono);
+    font-size: 12px;
+    border-radius: 4px;
+    z-index: 99;
+    box-shadow: 0 18px 40px rgba(0,0,0,.4);
+  }
+  .tweaks h5 {
+    margin: 0 0 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    opacity: .7;
+  }
+  .tweaks label { display: block; margin: 8px 0; }
+  .tweaks input[type=range] { width: 100%; }
+  .tweaks .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tweaks .swp {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--paper);
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── Page header ────────────────────────────────── -->
+<div class="pagehead">
+  <h1>카드뉴스<br/><em>디자인 시스템</em></h1>
+  <div>
+    <div class="sub">
+      Vintage collage / highlighter / paper-cutout 시스템<br/>
+      인스타 카드뉴스 4:5 (1080×1350) 기준<br/>
+      한글 디스플레이 · 형광 강조 · 그레인 텍스처
+    </div>
+    <div class="meta">
+      <span><b>v</b> 0.1.0</span>
+      <span><b>ratio</b> 4:5</span>
+      <span><b>safe area</b> 56px</span>
+      <span><b>tokens</b> 18</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ─────────────────────── 01 COLOR ──────────────────── -->
+  <div class="sect">
+    <span class="num">01</span>
+    <h2>Color &mdash; 색</h2>
+    <span class="desc">surfaces · accents · ink</span>
+  </div>
+
+  <div class="panel" style="margin-bottom:16px">
+    <h4>Surfaces · 배경 4종 <span>주조색</span></h4>
+    <div class="swatches">
+      <div class="sw">
+        <div class="chip checker-noir" style="position:relative; overflow:hidden"></div>
+        <div class="lbl"><b>Checker Noir</b><span>#15151A</span></div>
+      </div>
+      <div class="sw">
+        <div class="chip" style="background: var(--bg-deep)"></div>
+        <div class="lbl"><b>Deep Navy</b><span>#0F1D3A</span></div>
+      </div>
+      <div class="sw">
+        <div class="chip" style="background: var(--bg-royal)"></div>
+        <div class="lbl"><b>Royal Blue</b><span>#133FA6</span></div>
+      </div>
+      <div class="sw">
+        <div class="chip" style="background: var(--bg-bone)"></div>
+        <div class="lbl"><b>Bone Paper</b><span>#EFE6D3</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h4>Accents · 강조색 <span>제한적 사용</span></h4>
+    <div class="swatches">
+      <div class="sw">
+        <div class="chip" style="background: var(--mint)"></div>
+        <div class="lbl"><b>Highlighter Mint</b><span>#8BE8D4</span></div>
+      </div>
+      <div class="sw">
+        <div class="chip" style="background: var(--acid)"></div>
+        <div class="lbl"><b>Acid Yellow</b><span>#FFE14A</span></div>
+      </div>
+      <div class="sw">
+        <div class="chip" style="background: var(--blood)"></div>
+        <div class="lbl"><b>Stamp Red</b><span>#C2392B</span></div>
+      </div>
+      <div class="sw">
+        <div class="chip" style="background: var(--paper)"></div>
+        <div class="lbl"><b>Paper Cream</b><span>#F4EDE0</span></div>
+      </div>
+    </div>
+    <div class="mono" style="margin-top:16px; color: rgba(0,0,0,.55)">
+      한 카드당 강조색 <b>1개</b>만 사용. Mint = 본문 하이라이트 / Acid = 화살표·도형 / Red = 도장·라벨.
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────── 02 TYPE ───────────────────── -->
+  <div class="sect">
+    <span class="num">02</span>
+    <h2>Type &mdash; 타입</h2>
+    <span class="desc">display / body / hand / mono</span>
+  </div>
+
+  <div class="type-grid">
+    <div class="type-row">
+      <div class="label"><b>Display XL</b>72 / 95% / -1%<br/>Black Han Sans</div>
+      <div><h3 class="display-xl">"찐팬 100명"이 보물이다</h3></div>
+    </div>
+    <div class="type-row">
+      <div class="label"><b>Display L</b>52 / 100%<br/>Black Han Sans</div>
+      <div><h3 class="display-l">팔로워 1만이 아니라</h3></div>
+    </div>
+    <div class="type-row">
+      <div class="label"><b>Body Large</b>24 / 150% / 500<br/>Noto Sans KR</div>
+      <div><p class="body-l">내 이야기에 공감하고 기꺼이 지갑을 여는 진짜 팬.</p></div>
+    </div>
+    <div class="type-row">
+      <div class="label"><b>Body Medium</b>18 / 160% / 400<br/>Noto Sans KR</div>
+      <div><p class="body-m">단순한 팔로워 숫자는 진짜 성공을 보장해 주지 않습니다. 우리가 누군가를 팔로우할 때, 거의 에너지가 들어가지 않거든요.</p></div>
+    </div>
+    <div class="type-row">
+      <div class="label"><b>Hand</b>22 / 155%<br/>Gowun Dodum</div>
+      <div><p class="hand">우리가 공부하는 구간 ↘ 모르는 사이 → 아는 사이</p></div>
+    </div>
+    <div class="type-row">
+      <div class="label"><b>Mono / Caption</b>13 / 160% / .03em<br/>JetBrains Mono</div>
+      <div><p class="mono">CARD 03 / 07 — @marketing_hun · 2026.04</p></div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────── 03 HIGHLIGHT ─────────────── -->
+  <div class="sect">
+    <span class="num">03</span>
+    <h2>Highlight &mdash; 형광 강조</h2>
+    <span class="desc">signature element</span>
+  </div>
+
+  <div class="grid-3">
+    <div class="panel" style="background: var(--bg-noir); color: var(--paper)">
+      <h4 style="color: rgba(255,255,255,.5)">A. Inline (기본)</h4>
+      <p class="body-l" style="color: var(--paper)">팔로워는 많은데<br/><span class="hl">진짜 영향력이 있는건가?</span></p>
+    </div>
+    <div class="panel" style="background: var(--bg-noir); color: var(--paper)">
+      <h4 style="color: rgba(255,255,255,.5)">B. Drop-shadow</h4>
+      <p class="body-l" style="color: var(--paper)"><span class="hl hl-shadow">찐팬 100명이</span><br/><span class="hl hl-shadow">보물이다</span></p>
+    </div>
+    <div class="panel" style="background: var(--bg-noir); color: var(--paper)">
+      <h4 style="color: rgba(255,255,255,.5)">C. Tilted</h4>
+      <p class="body-l" style="color: var(--paper)"><span class="hl hl-tilt">우리가 현실에서</span><br/><span class="hl hl-tilt">'찐친'을 사귀는 것과 똑같다</span></p>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <div class="mono" style="color: rgba(0,0,0,.65)">
+      <b style="color:var(--ink)">규칙</b><br/>
+      · 강조 박스는 한 카드에 <b>최대 3줄</b>까지<br/>
+      · 본문에 띄워서 손으로 칠한 듯한 느낌. 줄 간격은 1.55 이상<br/>
+      · 검은/네이비 배경 위에서만 사용. Bone Paper 위에선 형광이 죽으므로 <b>Acid Yellow</b>로 대체
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────── 04 COLLAGE ───────────────── -->
+  <div class="sect">
+    <span class="num">04</span>
+    <h2>Collage &mdash; 콜라주 요소</h2>
+    <span class="desc">cutouts · arrows · stamps · stickers</span>
+  </div>
+
+  <div class="grid-3">
+    <!-- Cut-outs -->
+    <div class="panel">
+      <h4>Cut-out · 종이 컷아웃 <span>흰 테두리 6px</span></h4>
+      <div style="display:flex; gap:16px; align-items:center; padding: 16px 0">
+        <div class="cutout" style="width:130px; height:160px; transform: rotate(-3deg)"><span>HAND</span></div>
+        <div class="cutout halftone" style="width:130px; height:160px; transform: rotate(2deg)"><span style="background:none; border:1px dashed rgba(0,0,0,.4)">HALF-TONE</span></div>
+      </div>
+      <div class="mono" style="color:rgba(0,0,0,.6)">실제 사용시: 흑백/하프톤 처리한 사진 + 6px 흰 테두리 + 8px 그림자 + 2~3° 회전</div>
+    </div>
+
+    <!-- Arrows -->
+    <div class="panel">
+      <h4>Arrows · 손그림 화살표 <span>방향성 안내</span></h4>
+      <div style="display:flex; gap:24px; align-items:flex-end; padding: 16px 0; height: 140px">
+        <div class="arrow-down ink"></div>
+        <div class="arrow-down ink tiny"></div>
+        <div class="arrow-down acid" style="background: var(--blood)"></div>
+        <div style="display:flex; flex-direction:column; gap:4px; align-items:center">
+          <span class="hand" style="font-size:14px">우리가 공부하는 구간</span>
+          <svg width="60" height="20" viewBox="0 0 60 20"><path d="M5 10 Q 30 0 55 10" stroke="#0d0d10" stroke-width="2" fill="none"/><path d="M48 6 L55 10 L50 14" stroke="#0d0d10" stroke-width="2" fill="none"/></svg>
+        </div>
+      </div>
+      <div class="mono" style="color:rgba(0,0,0,.6)">크기 56–96px. 손글씨 캡션과 함께 다이어그램 만들 때 사용</div>
+    </div>
+
+    <!-- Stamps & stickers -->
+    <div class="panel">
+      <h4>Stamps &amp; Stickers · 라벨 <span>강조 / CTA</span></h4>
+      <div style="display:flex; gap:20px; align-items:center; padding: 24px 0; flex-wrap:wrap">
+        <span class="stamp">중요</span>
+        <span class="stamp" style="color: var(--ink); border-color: var(--ink); transform: rotate(3deg)">CARD 1/7</span>
+        <span class="sticker" style="font-family: var(--f-display); font-size:18px">무료자료</span>
+      </div>
+      <div class="mono" style="color:rgba(0,0,0,.6)">Stamp = 회전 -6°/+3°, 외곽선만. Sticker = 흰 종이 위 검은 외곽선 + 회전</div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────── 05 CARDS ─────────────────── -->
+  <div class="sect">
+    <span class="num">05</span>
+    <h2>Card Templates &mdash; 7장 시퀀스</h2>
+    <span class="desc">cover · thesis · explainer · diagram · compare · quote · cta</span>
+  </div>
+
+  <div class="cards-row" id="cards">
+
+    <!-- 01 COVER — checker-noir, big hook -->
+    <div class="card bg-noir grain scratch" data-screen-label="01 Cover">
+      <div style="position:absolute; inset:0; z-index:1" class="checker-noir"></div>
+      <div class="pad" style="display:flex; flex-direction:column; justify-content: space-between">
+        <div>
+          <div class="cutout" style="width:130px; height:170px; transform: rotate(-6deg); margin-bottom: 24px"><span>CAMERA</span></div>
+          <div class="mono" style="color: rgba(255,255,255,.55); margin-bottom: 12px">EP.04 / GROWTH NOTES</div>
+        </div>
+        <div>
+          <h2 class="display-l" style="color: var(--paper); margin-bottom: 8px">팔로워 1만이 아니라</h2>
+          <h2 class="display-xl" style="color: var(--paper)"><span class="hl hl-shadow">"진짜 팬 100명"</span><br/>이 보물이다</h2>
+        </div>
+      </div>
+      <div class="pageno" style="color: var(--mint)"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+
+    <!-- 02 THESIS — noir, highlight stack -->
+    <div class="card bg-noir grain scratch" data-screen-label="02 Thesis">
+      <div style="position:absolute; inset:0; z-index:1" class="checker-noir"></div>
+      <div class="pad" style="display:flex; flex-direction:column; justify-content: center; gap: 28px">
+        <p class="body-l" style="color: var(--paper)"><span class="hl">팔로워는 많은데 진짜 영향력이 있는건가?</span></p>
+        <div style="display:flex; flex-direction:column; gap:6px; padding-left: 28px">
+          <span style="width:1px; height: 14px; background: var(--mint)"></span>
+          <span style="width:1px; height: 14px; background: var(--mint)"></span>
+          <span style="width:1px; height: 14px; background: var(--mint)"></span>
+        </div>
+        <p class="body-l" style="color: var(--paper)"><span class="hl">내 이야기에 공감하고 기꺼이 지갑을 여는 '찐팬 100명'이 훨씬 강력하다는 건 요즘 다 아실겁니다.</span></p>
+        <p class="body-m" style="color: rgba(255,255,255,.85)"><span class="hl">단순한 팔로워 숫자는 우리의 진짜 성공을 보장해 주지 않거든요.</span></p>
+        <p class="body-m" style="color: rgba(255,255,255,.85)"><span class="hl">그럼 찐팬은 어떻게 모으는걸까?</span></p>
+      </div>
+      <div class="pageno" style="color: var(--mint)"><i></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+
+    <!-- 03 EXPLAINER — deep navy, focal cutout -->
+    <div class="card bg-deep grain" data-screen-label="03 Explainer">
+      <div class="pad" style="display:flex; flex-direction:column; gap: 24px">
+        <h3 class="display-l" style="color: var(--paper); font-size: 36px">찐팬을 만드는 비결은<br/>아주 단순합니다.</h3>
+        <div style="margin-left: auto; max-width: 320px; text-align:right">
+          <span class="hl">우리가 현실에서 '찐친'을<br/>사귀는 과정과 똑같거든요.</span>
+        </div>
+        <div style="flex:1; display:grid; place-items:center">
+          <div class="halftone" style="width: 240px; height: 280px; border-radius: 50% 48% 52% 50%; transform: rotate(-4deg); border-width: 5px; display:grid; place-items:center">
+            <span style="background: rgba(255,255,255,.7); padding: 4px 8px; font-family: var(--f-mono); font-size: 10px">PORTRAIT · HALFTONE</span>
+          </div>
+        </div>
+      </div>
+      <div class="pageno"><i></i><i></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    </div>
+
+    <!-- 04 DIAGRAM — hand-annotated flow -->
+    <div class="card bg-noir grain scratch" data-screen-label="04 Diagram">
+      <div style="position:absolute; inset:0; z-index:1; background: radial-gradient(ellipse at 50% 80%, #2a2520 0%, #0a0a0d 70%)"></div>
+      <div style="position:absolute; inset:0; z-index:2; background: repeating-linear-gradient(180deg, rgba(255,220,150,.04) 0 2px, transparent 2px 8px)"></div>
+      <div class="pad" style="display:flex; flex-direction:column; gap: 14px; z-index: 5">
+        <p class="hand" style="color: var(--paper); text-align:center">모르는 사이</p>
+        <div class="arrow-down" style="background: var(--paper); margin: 0 auto"></div>
+        <p class="hand" style="color: var(--paper); text-align:center">아 그냥 우리 아는사이~ <span style="opacity:.7">( 팔로우 버튼만 누른 거 )</span></p>
+        <div style="display:flex; align-items:flex-start; gap: 16px; justify-content:center; margin: 4px 0">
+          <div class="arrow-down acid"></div>
+          <div style="margin-top: 14px; display:flex; align-items:center; gap: 8px">
+            <svg width="40" height="60" viewBox="0 0 40 60"><path d="M5 5 Q 35 30 5 55" stroke="#f4ede0" stroke-width="1.5" fill="none"/></svg>
+            <span class="hand" style="color: var(--paper); font-size: 14px">우리가 공부하는<br/>구간</span>
+          </div>
+        </div>
+        <p class="hand" style="color: var(--paper); text-align:center">아 이 사람 어쩌구 <span style="opacity:.7">(찐친 / 내가 뭐 하면 다 응원해줌)</span></p>
+        <div style="flex:1"></div>
+        <div style="display:flex; gap: 24px; justify-content: center; align-items: flex-end">
+          <div style="text-align:center; max-width: 220px">
+            <div class="cutout" style="width: 80px; height: 100px; margin: 0 auto 12px; transform: rotate(-4deg)"><span>A</span></div>
+            <p class="body-m" style="color: var(--paper); line-height: 1.4; font-size:13px">멋진 척, 있는 척, 대단한 척<br/>계속 말이 달라짐<br/>자기 말만 하고 안 들어줌</p>
+          </div>
+          <div style="text-align:center; max-width: 220px">
+            <div class="cutout halftone" style="width: 80px; height: 100px; margin: 0 auto 12px; transform: rotate(3deg)"><span style="background:none">B</span></div>
+            <p class="body-m" style="color: var(--paper); line-height: 1.4; font-size:13px">엄청 솔직함<br/>확실한 목표가 있음<br/>내 이야기 많이 들어줌</p>
+          </div>
+        </div>
+      </div>
+      <div class="pageno" style="color: var(--mint)"><i></i><i></i><i></i><i class="on"></i><i></i><i></i><i></i></div>
+    </div>
+
+    <!-- 05 QUOTE — bone paper, high contrast -->
+    <div class="card bg-bone grain" data-screen-label="05 Quote">
+      <div class="pad" style="display:flex; flex-direction:column; justify-content: space-between">
+        <div>
+          <span class="stamp">PRINCIPLE</span>
+        </div>
+        <div>
+          <h3 class="display-xl" style="color: var(--ink); font-size: 64px">진짜 신뢰는<br/><span style="background: var(--acid); padding: 0 .15em; box-shadow: 4px 4px 0 var(--ink)">시간</span>이<br/>만든다.</h3>
+          <p class="body-m" style="color: rgba(0,0,0,.7); margin-top: 24px; max-width: 380px">팔로워 한 명을 만드는 데 1초가 걸리지만, 찐팬 한 명을 만드는 데는 100시간이 든다.</p>
+        </div>
+        <div style="display:flex; justify-content: space-between; align-items: flex-end">
+          <span class="mono" style="color: rgba(0,0,0,.55)">— GROWTH NOTES, EP.04</span>
+          <div class="cutout" style="width: 120px; height: 100px; transform: rotate(4deg); border-color: var(--ink); background: repeating-linear-gradient(135deg, #0d0d10 0 6px, #1a1a1f 6px 12px)"><span>STAMP</span></div>
+        </div>
+      </div>
+      <div class="pageno"><i></i><i></i><i></i><i></i><i class="on"></i><i></i><i></i></div>
+    </div>
+
+    <!-- 06 COMPARE — navy, numbered list -->
+    <div class="card bg-deep grain" data-screen-label="06 Compare">
+      <div class="pad" style="display:flex; flex-direction:column; gap: 20px">
+        <div class="mono" style="color: rgba(255,255,255,.5)">CHECKLIST · 06 / 07</div>
+        <h3 class="display-l" style="color: var(--paper); font-size: 36px">찐팬은 이 4가지를<br/>받고 싶어합니다.</h3>
+        <div style="display:flex; flex-direction:column; gap: 14px; margin-top: 8px">
+          <div style="display:flex; gap: 16px; align-items: baseline">
+            <span style="font-family: var(--f-display); color: var(--mint); font-size: 32px; min-width: 48px">01</span>
+            <div>
+              <p class="body-l" style="color: var(--paper); margin-bottom: 4px"><span class="hl">반복적으로 보이기</span></p>
+              <p class="body-m" style="color: rgba(255,255,255,.7); font-size:15px">매일 같은 시간 · 같은 채널에 등장한다</p>
+            </div>
+          </div>
+          <div style="display:flex; gap: 16px; align-items: baseline">
+            <span style="font-family: var(--f-display); color: var(--mint); font-size: 32px; min-width: 48px">02</span>
+            <div>
+              <p class="body-l" style="color: var(--paper); margin-bottom: 4px"><span class="hl">한 가지 주제로 좁히기</span></p>
+              <p class="body-m" style="color: rgba(255,255,255,.7); font-size:15px">어디서든 인지될 수 있는 한 단어를 가진다</p>
+            </div>
+          </div>
+          <div style="display:flex; gap: 16px; align-items: baseline">
+            <span style="font-family: var(--f-display); color: var(--mint); font-size: 32px; min-width: 48px">03</span>
+            <div>
+              <p class="body-l" style="color: var(--paper); margin-bottom: 4px"><span class="hl">속마음 보여주기</span></p>
+              <p class="body-m" style="color: rgba(255,255,255,.7); font-size:15px">실패와 의심까지 솔직하게 공유한다</p>
+            </div>
+          </div>
+          <div style="display:flex; gap: 16px; align-items: baseline">
+            <span style="font-family: var(--f-display); color: var(--mint); font-size: 32px; min-width: 48px">04</span>
+            <div>
+              <p class="body-l" style="color: var(--paper); margin-bottom: 4px"><span class="hl">먼저 베풀기</span></p>
+              <p class="body-m" style="color: rgba(255,255,255,.7); font-size:15px">대가 없이 무료 자료부터 보낸다</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pageno"><i></i><i></i><i></i><i></i><i></i><i class="on"></i><i></i></div>
+    </div>
+
+    <!-- 07 CTA — royal blue, call to action -->
+    <div class="card bg-royal grain" data-screen-label="07 CTA">
+      <div class="pad" style="display:flex; flex-direction:column; justify-content: space-between">
+        <h3 class="display-l" style="color: var(--paper); font-size: 36px">그건 다음 카드뉴스에서<br/>말씀드리겠습니다</h3>
+        <!-- megaphone shape -->
+        <div style="position: relative; align-self: center; width: 360px; height: 280px">
+          <div class="halftone" style="position:absolute; inset:0; clip-path: polygon(0 30%, 60% 10%, 100% 0, 95% 100%, 55% 90%, 0 70%); border:0; box-shadow:none"></div>
+          <svg style="position:absolute; right: -10px; top: -10px" width="120" height="120" viewBox="0 0 120 120">
+            <path d="M30 60 Q 80 30 110 60" stroke="#FFE14A" stroke-width="6" fill="none" stroke-linecap="round"/>
+            <path d="M30 60 Q 80 60 110 60" stroke="#FFE14A" stroke-width="6" fill="none" stroke-linecap="round"/>
+            <path d="M30 60 Q 80 90 110 60" stroke="#FFE14A" stroke-width="6" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <p class="body-l" style="color: var(--paper); text-align:right; margin-bottom: 12px"><span class="hl">프로필 링크에서<br/>무료로 받아두세요</span></p>
+          <div style="display:flex; justify-content: flex-end">
+            <div class="sticker" style="background: var(--paper); display:flex; gap: 10px; align-items:center; transform: rotate(2deg); padding: 10px 14px">
+              <div style="width:36px; height:36px; border-radius:50%; background: repeating-linear-gradient(45deg, #15151a 0 4px, #2a2a30 4px 8px)"></div>
+              <div style="font-family: var(--f-mono); font-size: 11px; line-height: 1.4; color: var(--ink)">
+                <b style="font-size:12px">@growth_notes</b><br/>
+                팔로워 3,873 · 팔로잉 0<br/>
+                <span style="color: var(--blood)">▶ 무료자료 받기</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pageno"><i></i><i></i><i></i><i></i><i></i><i></i><i class="on"></i></div>
+    </div>
+
+  </div>
+
+
+  <!-- ─────────────────────── 06 GRID & SPACING ────────── -->
+  <div class="sect">
+    <span class="num">06</span>
+    <h2>Grid &amp; Spacing</h2>
+    <span class="desc">safe area · rhythm</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h4>Card geometry <span>1080 × 1350</span></h4>
+      <div style="position: relative; width: 100%; aspect-ratio: 4/5; background: var(--paper-2); border: 1px solid rgba(0,0,0,.2)">
+        <div style="position:absolute; inset: 9.3%; border: 1px dashed rgba(0,0,0,.3)"></div>
+        <div style="position:absolute; left:50%; top:0; bottom:0; width:1px; background: rgba(0,0,0,.08)"></div>
+        <div style="position:absolute; top:50%; left:0; right:0; height:1px; background: rgba(0,0,0,.08)"></div>
+        <div style="position:absolute; left: 12px; top: 12px; font-family: var(--f-mono); font-size: 10px; color: rgba(0,0,0,.55)">SAFE AREA · 56px</div>
+        <div style="position:absolute; right: 12px; bottom: 12px; font-family: var(--f-mono); font-size: 10px; color: rgba(0,0,0,.55)">RATIO 4:5</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h4>Spacing scale <span>4px base</span></h4>
+      <div style="display:flex; flex-direction:column; gap: 10px">
+        <div style="display:flex; align-items:center; gap:12px"><div style="width:  4px; height: 14px; background: var(--ink)"></div><span class="mono">s1 — 4px</span></div>
+        <div style="display:flex; align-items:center; gap:12px"><div style="width:  8px; height: 14px; background: var(--ink)"></div><span class="mono">s2 — 8px</span></div>
+        <div style="display:flex; align-items:center; gap:12px"><div style="width: 12px; height: 14px; background: var(--ink)"></div><span class="mono">s3 — 12px</span></div>
+        <div style="display:flex; align-items:center; gap:12px"><div style="width: 16px; height: 14px; background: var(--ink)"></div><span class="mono">s4 — 16px · base text</span></div>
+        <div style="display:flex; align-items:center; gap:12px"><div style="width: 24px; height: 14px; background: var(--ink)"></div><span class="mono">s5 — 24px · paragraph</span></div>
+        <div style="display:flex; align-items:center; gap:12px"><div style="width: 32px; height: 14px; background: var(--ink)"></div><span class="mono">s6 — 32px · block</span></div>
+        <div style="display:flex; align-items:center; gap:12px"><div style="width: 48px; height: 14px; background: var(--ink)"></div><span class="mono">s7 — 48px · section</span></div>
+        <div style="display:flex; align-items:center; gap:12px"><div style="width: 64px; height: 14px; background: var(--ink)"></div><span class="mono">s8 — 64px · gutter</span></div>
+        <div style="display:flex; align-items:center; gap:12px"><div style="width: 96px; height: 14px; background: var(--ink)"></div><span class="mono">s9 — 96px · cover hero</span></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────── 07 DO & DON'T ────────────── -->
+  <div class="sect">
+    <span class="num">07</span>
+    <h2>Do &amp; Don't</h2>
+    <span class="desc">tone of voice</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel" style="border-left: 4px solid var(--mint)">
+      <h4 style="color: var(--ink)">DO · 권장</h4>
+      <ul class="body-m" style="margin: 0; padding-left: 20px; line-height: 1.8">
+        <li>한 카드에 핵심 메시지 <b>1개</b>만 — 나머진 그 메시지를 받쳐주는 역할</li>
+        <li>형광 강조는 <b>3줄 이하</b>로 — 너무 많으면 강조가 사라진다</li>
+        <li>이미지는 흑백·하프톤으로 <b>톤을 통일</b>해서 컬러 대비 만들기</li>
+        <li>그레인·스크래치 텍스처를 항상 <b>최상단 레이어</b>로</li>
+        <li>회전은 ±2~6° 사이 — 너무 똑바르면 디지털 느낌, 너무 비뚤면 산만함</li>
+      </ul>
+    </div>
+    <div class="panel" style="border-left: 4px solid var(--blood)">
+      <h4 style="color: var(--ink)">DON'T · 지양</h4>
+      <ul class="body-m" style="margin: 0; padding-left: 20px; line-height: 1.8">
+        <li>이모지 — 콜라주 무드와 충돌. 손글씨 화살표나 도장으로 대체</li>
+        <li>그라디언트 배경 — 단색 + 그레인이 핵심</li>
+        <li>둥근 모서리 — 컷아웃은 직각 또는 손으로 자른 듯한 거친 가장자리</li>
+        <li>Mint + Royal Blue 동시 사용 — 한 카드 한 강조색</li>
+        <li>한 카드에 사진 3장 이상 — 최대 2장, 크기 차이를 크게</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ─── Tweaks panel ──────────────────────────────────── -->
+<div class="tweaks" id="tweaks">
+  <h5>Tweaks</h5>
+  <label>Grain intensity
+    <input type="range" id="tg-grain" min="0" max="1" step="0.05" value="0.55" />
+  </label>
+  <label>Card scale
+    <input type="range" id="tg-scale" min="0.6" max="1.2" step="0.05" value="1" />
+  </label>
+  <label style="margin-top:12px">Highlight color</label>
+  <div class="row" id="tg-hue">
+    <button class="swp" data-c="#8be8d4" style="background:#8be8d4"></button>
+    <button class="swp" data-c="#ffe14a" style="background:#ffe14a"></button>
+    <button class="swp" data-c="#ff9bd8" style="background:#ff9bd8"></button>
+    <button class="swp" data-c="#a8ff8a" style="background:#a8ff8a"></button>
+    <button class="swp" data-c="#ffb37a" style="background:#ffb37a"></button>
+  </div>
+  <label style="margin-top:12px">Cover background</label>
+  <div class="row" id="tg-bg">
+    <button class="swp" data-c="bg-noir"  style="background:#15151a"></button>
+    <button class="swp" data-c="bg-deep"  style="background:#0F1D3A"></button>
+    <button class="swp" data-c="bg-royal" style="background:#133FA6"></button>
+    <button class="swp" data-c="bg-bone"  style="background:#EFE6D3; border-color:#0d0d10"></button>
+  </div>
+</div>
+
+<script>
+  document.getElementById('tg-grain').addEventListener('input', e => {
+    document.documentElement.style.setProperty('--grain', e.target.value);
+  });
+
+  document.getElementById('tg-scale').addEventListener('input', e => {
+    const s = parseFloat(e.target.value);
+    document.documentElement.style.setProperty('--card-w', (640 * s) + 'px');
+    document.documentElement.style.setProperty('--card-h', (800 * s) + 'px');
+    document.querySelectorAll('.card').forEach(c => {
+      c.style.width  = (640 * s) + 'px';
+      c.style.height = (800 * s) + 'px';
+    });
+  });
+
+  document.querySelectorAll('#tg-hue .swp').forEach(b => {
+    b.addEventListener('click', () => {
+      document.documentElement.style.setProperty('--mint', b.dataset.c);
+    });
+  });
+
+  document.querySelectorAll('#tg-bg .swp').forEach(b => {
+    b.addEventListener('click', () => {
+      const cls = b.dataset.c;
+      const cover = document.querySelector('#cards .card');
+      cover.classList.remove('bg-noir', 'bg-deep', 'bg-royal', 'bg-bone');
+      cover.classList.add(cls);
+    });
+  });
+</script>
+
+</body>
+</html>
