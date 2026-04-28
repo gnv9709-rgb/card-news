@@ -1,4 +1,12 @@
+import { useState } from 'react'
+
 const TOTAL = 7
+
+const COVER_PROMPT = `Dramatic editorial photo for a Korean economic news card cover.
+Dark noir atmosphere. Close-up of a fractured glass globe splitting apart,
+with stock market numbers and oil barrel silhouettes dissolving into dark shadows.
+Cinematic, high contrast. Dark background with warm amber highlights and cool teal accents.
+No text. Photorealistic. Magazine quality, editorial style.`
 
 function PageDots({ active }: { active: number }) {
   return (
@@ -10,16 +18,80 @@ function PageDots({ active }: { active: number }) {
   )
 }
 
+type GenState = 'idle' | 'loading' | 'done' | 'error'
+
+function useFalImage() {
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [state, setState] = useState<GenState>('idle')
+
+  async function generate(prompt: string) {
+    const FAL_KEY = import.meta.env.VITE_FAL_KEY
+    if (!FAL_KEY) {
+      alert('.env.local 에 VITE_FAL_KEY=your_key 를 추가해주세요')
+      return
+    }
+
+    setState('loading')
+    try {
+      // 제출
+      const submitRes = await fetch('https://queue.fal.run/fal-ai/nano-banana-2', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Key ${FAL_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, image_size: 'portrait_4_3', num_images: 1, seed: 42 }),
+      })
+      if (!submitRes.ok) throw new Error(`Submit 실패: ${submitRes.status}`)
+      const { response_url, status_url } = await submitRes.json()
+
+      // 폴링
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 2000))
+        const s = await fetch(status_url, { headers: { 'Authorization': `Key ${FAL_KEY}` } })
+        const { status } = await s.json()
+        if (status === 'COMPLETED') {
+          const r = await fetch(response_url, { headers: { 'Authorization': `Key ${FAL_KEY}` } })
+          const data = await r.json()
+          const url = data.images?.[0]?.url
+          if (!url) throw new Error('이미지 URL 없음')
+          setImageUrl(url)
+          setState('done')
+          return
+        }
+        if (status === 'FAILED') throw new Error('생성 실패')
+      }
+      throw new Error('타임아웃')
+    } catch (e) {
+      console.error(e)
+      setState('error')
+    }
+  }
+
+  return { imageUrl, state, generate }
+}
+
 export function EconNewsCards() {
+  const { imageUrl, state, generate } = useFalImage()
+
   return (
     <div className="cards-row" id="econ-news-cards">
 
       {/* ── 01 COVER ──────────────────────────────────────── */}
-      <div className="card bg-noir grain scratch">
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1 }} className="checker-noir" />
+      <div className="card bg-noir grain scratch" style={{ position: 'relative', overflow: 'hidden' }}>
+        {/* AI 생성 이미지 또는 checker 배경 */}
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt="AI 생성 커버"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1, opacity: 0.7 }}
+          />
+        ) : (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 1 }} className="checker-noir" />
+        )}
         <div
           className="pad"
-          style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 5 }}
+          style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 5, position: 'relative' }}
         >
           <div>
             <div
@@ -43,6 +115,28 @@ export function EconNewsCards() {
             <p className="body-m" style={{ color: 'rgba(255,255,255,.55)', marginTop: 20 }}>
               OPEC 탈퇴 · 에너지 급등 · 금리 동결
             </p>
+            {/* AI 이미지 생성 버튼 */}
+            <button
+              onClick={() => generate(COVER_PROMPT)}
+              disabled={state === 'loading'}
+              style={{
+                marginTop: 16,
+                padding: '6px 14px',
+                background: state === 'done' ? 'var(--mint)' : 'rgba(255,255,255,.12)',
+                border: '1px solid rgba(255,255,255,.3)',
+                borderRadius: 4,
+                color: state === 'done' ? 'var(--ink)' : 'var(--paper)',
+                fontFamily: 'var(--f-mono)',
+                fontSize: 11,
+                cursor: state === 'loading' ? 'wait' : 'pointer',
+                letterSpacing: '.05em',
+              }}
+            >
+              {state === 'idle' && '✦ AI 커버 생성'}
+              {state === 'loading' && '⟳ 생성 중…'}
+              {state === 'done' && '✓ 재생성'}
+              {state === 'error' && '⚠ 다시 시도'}
+            </button>
           </div>
         </div>
         <PageDots active={0} />
