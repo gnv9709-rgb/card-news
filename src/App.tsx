@@ -55,6 +55,14 @@ export default function App() {
         </div>
         <NewsPanel />
 
+        {/* ── 00b TODAY'S CARD NEWS ────────────────── */}
+        <div className="sect" style={{ marginTop: 64 }}>
+          <span className="num" style={{ background: 'var(--blood)' }}>HOT</span>
+          <h2>2026.04.28 경제 핫뉴스 5선</h2>
+          <span className="desc">UAE OPEC · 에너지 · 금리 · BTC · EU</span>
+        </div>
+        <EconNewsCards />
+
         {/* ── 01 COLOR ────────────────────────────── */}
         <div className="sect">
           <span className="num">01</span>
