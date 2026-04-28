@@ -316,53 +316,106 @@ export function EconNewsCards() {
       </div>
 
       {/* ── 07 CTA ────────────────────────────────────────── */}
-      <div className="card bg-royal grain">
-        <div className="pad" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <h3 className="display-l" style={{ color: 'var(--paper)', fontSize: 38 }}>
-            오늘의 경제뉴스<br />어떠셨나요?
-          </h3>
-          <div style={{ position: 'relative', alignSelf: 'center', width: 360, height: 260 }}>
-            <div
-              className="halftone"
-              style={{
-                position: 'absolute', inset: 0,
-                clipPath: 'polygon(0 30%, 60% 10%, 100% 0, 95% 100%, 55% 90%, 0 70%)',
-                border: 0, boxShadow: 'none',
-              }}
-            />
-            <svg style={{ position: 'absolute', right: -10, top: -10 }} width="120" height="120" viewBox="0 0 120 120">
-              <path d="M30 60 Q 80 30 110 60" stroke="#FFE14A" strokeWidth="6" fill="none" strokeLinecap="round" />
-              <path d="M30 60 Q 80 60 110 60" stroke="#FFE14A" strokeWidth="6" fill="none" strokeLinecap="round" />
-              <path d="M30 60 Q 80 90 110 60" stroke="#FFE14A" strokeWidth="6" fill="none" strokeLinecap="round" />
-            </svg>
+      <div className="card bg-noir grain scratch" style={{ position: 'relative', overflow: 'hidden' }}>
+        {/* 배경 — 어두운 그라디언트 */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 1,
+          background: 'radial-gradient(ellipse at 50% 40%, #1c2b1a 0%, #0a0a0d 65%)',
+        }} />
+        {/* 체커 텍스처 (투명하게) */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 2, opacity: 0.08 }} className="checker-noir" />
+
+        {/* 콘텐츠 — 세로 중앙 정렬 */}
+        <div style={{
+          position: 'relative', zIndex: 5,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          height: '100%', padding: '48px 32px',
+          textAlign: 'center', gap: 0,
+        }}>
+          {/* 배지 */}
+          <div style={{
+            display: 'inline-block',
+            background: 'var(--paper)',
+            color: 'var(--ink)',
+            borderRadius: 100,
+            padding: '7px 20px',
+            fontFamily: 'var(--f-mono)',
+            fontSize: 12,
+            letterSpacing: '.12em',
+            fontWeight: 700,
+            marginBottom: 32,
+          }}>
+            ECON NEWS
           </div>
-          <div>
-            <p className="body-l" style={{ color: 'var(--paper)', textAlign: 'right', marginBottom: 12 }}>
-              <span className="hl">매일 아침 경제 핫뉴스<br />팔로우하면 무료로 받아요</span>
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <div
-                className="sticker"
-                style={{
-                  background: 'var(--paper)', display: 'flex', gap: 10,
-                  alignItems: 'center', transform: 'rotate(2deg)', padding: '10px 14px',
-                }}
-              >
-                <div
-                  style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    background: 'repeating-linear-gradient(45deg, #15151a 0 4px, #2a2a30 4px 8px)',
-                  }}
-                />
-                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, lineHeight: 1.4, color: 'var(--ink)' }}>
-                  <b style={{ fontSize: 12 }}>@econ_daily</b><br />
-                  경제뉴스 큐레이터<br />
-                  <span style={{ color: 'var(--blood)' }}>▶ 팔로우 &amp; 저장</span>
-                </div>
-              </div>
-            </div>
+
+          {/* 헤드라인 */}
+          <h3 style={{
+            color: 'var(--paper)',
+            fontSize: 42,
+            lineHeight: 1.2,
+            fontFamily: 'var(--f-display)',
+            fontWeight: 900,
+            marginBottom: 20,
+          }}>
+            경제 트렌드는?<br />'에코노믹스'
+          </h3>
+
+          {/* 서브타이틀 */}
+          <p style={{
+            color: 'rgba(255,255,255,.65)',
+            fontSize: 15,
+            lineHeight: 1.8,
+            marginBottom: 44,
+          }}>
+            매일 쏟아지는 경제 핫뉴스<br />
+            지금 팔로우하고 놓치지 마세요.
+          </p>
+
+          {/* 액션 버튼 3개 */}
+          <div style={{ display: 'flex', gap: 20 }}>
+            {/* 좋아요 */}
+            <button style={{
+              width: 58, height: 58, borderRadius: '50%',
+              background: 'rgba(255,255,255,.1)',
+              border: '1px solid rgba(255,255,255,.18)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                  stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {/* 댓글 */}
+            <button style={{
+              width: 58, height: 58, borderRadius: '50%',
+              background: 'rgba(255,255,255,.1)',
+              border: '1px solid rgba(255,255,255,.18)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                  stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {/* 저장 */}
+            <button style={{
+              width: 58, height: 58, borderRadius: '50%',
+              background: 'rgba(255,255,255,.1)',
+              border: '1px solid rgba(255,255,255,.18)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+                  stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
+
         <div className="pageno">
           {Array.from({ length: TOTAL }).map((_, i) => (
             <i key={i} className={i === 6 ? 'on' : ''} />
