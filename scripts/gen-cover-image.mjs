@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 /**
- * fal.ai nano-banana-2 로 커버 이미지를 생성하고
- * public/generated/ 폴더에 저장합니다.
+ * Higgsfield AI로 커버 이미지를 생성하고 public/generated/ 에 저장합니다.
  *
  * 사용법:
- *   FAL_KEY=your_key node scripts/gen-cover-image.mjs
- *   FAL_KEY=your_key node scripts/gen-cover-image.mjs "custom prompt here"
+ *   HIGGSFIELD_API_KEY=your_key node scripts/gen-cover-image.mjs
+ *   HIGGSFIELD_API_KEY=your_key node scripts/gen-cover-image.mjs "custom prompt"
+ *   HIGGSFIELD_API_KEY=your_key node scripts/gen-cover-image.mjs "prompt" cinematic_studio_2_5
+ *
+ * 모델 옵션:
+ *   cinematic_studio_2_5  — 시네마틱 스틸, 4K (기본값, 커버용)
+ *   soul_cinematic        — 시네마틱 컨셉아트
+ *   nano_banana_2         — 범용 고품질 4K
+ *   gpt_image_2           — 텍스트 렌더링 강점
  */
 
 import { createWriteStream, mkdirSync } from 'fs'
@@ -16,12 +22,14 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = path.join(__dirname, '..', 'public', 'generated')
 
-const FAL_KEY = process.env.FAL_KEY
-if (!FAL_KEY) {
-  console.error('❌  FAL_KEY 환경변수가 필요합니다.')
-  console.error('   실행: FAL_KEY=your_key node scripts/gen-cover-image.mjs')
+const API_KEY = process.env.HIGGSFIELD_API_KEY
+if (!API_KEY) {
+  console.error('❌  HIGGSFIELD_API_KEY 환경변수가 필요합니다.')
+  console.error('   실행: HIGGSFIELD_API_KEY=your_key node scripts/gen-cover-image.mjs')
   process.exit(1)
 }
+
+const BASE_URL = 'https://mcp.higgsfield.ai'
 
 const DEFAULT_PROMPT = `
 Dramatic editorial photo for a Korean economic news card cover.
@@ -33,69 +41,63 @@ Magazine quality, editorial style.
 `.trim()
 
 const prompt = process.argv[2] ?? DEFAULT_PROMPT
-const seed = parseInt(process.argv[3] ?? '42', 10)
+const model  = process.argv[3] ?? 'cinematic_studio_2_5'
+
+async function apiRequest(method, endpoint, body) {
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`API 오류 (${res.status}) ${endpoint}: ${err}`)
+  }
+  return res.json()
+}
+
+async function pollJob(jobId, maxWaitMs = 120_000) {
+  const start = Date.now()
+  while (Date.now() - start < maxWaitMs) {
+    await new Promise(r => setTimeout(r, 3000))
+    process.stdout.write('.')
+
+    const data = await apiRequest('GET', `/v1/generations/${jobId}`)
+    if (data.status === 'completed') {
+      process.stdout.write('\n')
+      return data
+    }
+    if (data.status === 'failed') {
+      throw new Error(`생성 실패: ${JSON.stringify(data)}`)
+    }
+  }
+  throw new Error('타임아웃: 120초 초과')
+}
 
 async function generate() {
   console.log('🎨  이미지 생성 중...')
-  console.log(`   모델: fal-ai/nano-banana-2`)
+  console.log(`   모델: ${model}`)
   console.log(`   프롬프트: ${prompt.slice(0, 80)}...`)
 
-  // fal.ai REST API — queue 방식 (비동기)
-  const submitRes = await fetch('https://queue.fal.run/fal-ai/nano-banana-2', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Key ${FAL_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt,
-      image_size: 'portrait_4_3',  // 1080×1350 근사치
-      num_images: 1,
-      seed,
-    }),
+  const job = await apiRequest('POST', '/v1/generations/image', {
+    model,
+    prompt,
+    aspect_ratio: '3:4',
+    resolution: '2k',
+    count: 1,
   })
 
-  if (!submitRes.ok) {
-    const err = await submitRes.text()
-    throw new Error(`Submit 실패 (${submitRes.status}): ${err}`)
-  }
+  console.log(`   Job ID: ${job.id}`)
 
-  const { request_id, response_url, status_url } = await submitRes.json()
-  console.log(`   요청 ID: ${request_id}`)
-
-  // 폴링 — 완료될 때까지 대기
-  let result = null
-  for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 2000))
-    process.stdout.write('.')
-
-    const statusRes = await fetch(status_url, {
-      headers: { 'Authorization': `Key ${FAL_KEY}` },
-    })
-    const status = await statusRes.json()
-
-    if (status.status === 'COMPLETED') {
-      process.stdout.write('\n')
-      // response_url 에서 최종 결과 가져오기
-      const resultRes = await fetch(response_url, {
-        headers: { 'Authorization': `Key ${FAL_KEY}` },
-      })
-      result = await resultRes.json()
-      break
-    }
-    if (status.status === 'FAILED') {
-      throw new Error(`생성 실패: ${JSON.stringify(status)}`)
-    }
-  }
-
-  if (!result) throw new Error('타임아웃: 120초 초과')
-
-  const imageUrl = result.images?.[0]?.url
+  const result = await pollJob(job.id)
+  const imageUrl = result.results?.rawUrl
   if (!imageUrl) throw new Error(`이미지 URL 없음: ${JSON.stringify(result)}`)
 
   console.log(`✅  생성 완료: ${imageUrl}`)
 
-  // 로컬에 저장
   mkdirSync(OUT_DIR, { recursive: true })
   const filename = `cover-${Date.now()}.png`
   const outPath = path.join(OUT_DIR, filename)
@@ -105,8 +107,7 @@ async function generate() {
   await pipeline(imgRes.body, createWriteStream(outPath))
 
   console.log(`💾  저장 완료: public/generated/${filename}`)
-  console.log(`   React에서: import coverImg from '/generated/${filename}'`)
-  console.log(`   또는:      <img src="/generated/${filename}" />`)
+  console.log(`   React에서: <img src="/generated/${filename}" />`)
 
   return `/generated/${filename}`
 }
