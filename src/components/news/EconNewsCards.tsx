@@ -2,11 +2,13 @@ import { useState } from 'react'
 
 const TOTAL = 7
 
-const COVER_PROMPT = `Dramatic editorial photo for a Korean economic news card cover.
-Dark noir atmosphere. Close-up of a fractured glass globe splitting apart,
-with stock market numbers and oil barrel silhouettes dissolving into dark shadows.
-Cinematic, high contrast. Dark background with warm amber highlights and cool teal accents.
-No text. Photorealistic. Magazine quality, editorial style.`
+const COVER_IMAGE = '/generated/cover-korea-econ-transform.png'
+
+const COVER_PROMPT = `Dramatic aerial view of South Korea's economic transformation.
+Seoul skyline at golden hour with semiconductor chips, battery cells, and circuit board patterns
+reflecting in the Han River. Corporate towers shifting and restructuring, symbolic of economic change.
+Cinematic 4K, warm golden light mixed with cool blue technology glow. No text.
+Ultra-realistic editorial photography, magazine cover quality.`
 
 function PageDots({ active }: { active: number }) {
   return (
@@ -20,46 +22,44 @@ function PageDots({ active }: { active: number }) {
 
 type GenState = 'idle' | 'loading' | 'done' | 'error'
 
-function useFalImage() {
+function useHiggsfieldImage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [state, setState] = useState<GenState>('idle')
 
   async function generate(prompt: string) {
-    const FAL_KEY = import.meta.env.VITE_FAL_KEY
-    if (!FAL_KEY) {
-      alert('.env.local 에 VITE_FAL_KEY=your_key 를 추가해주세요')
+    const API_KEY = import.meta.env.VITE_HIGGSFIELD_API_KEY
+    if (!API_KEY) {
+      alert('.env.local 에 VITE_HIGGSFIELD_API_KEY=your_key 를 추가해주세요')
       return
     }
 
     setState('loading')
     try {
-      // 제출
-      const submitRes = await fetch('https://queue.fal.run/fal-ai/nano-banana-2', {
+      const submitRes = await fetch('https://mcp.higgsfield.ai/v1/generations/image', {
         method: 'POST',
         headers: {
-          'Authorization': `Key ${FAL_KEY}`,
+          'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt, image_size: 'portrait_4_3', num_images: 1, seed: 42 }),
+        body: JSON.stringify({ model: 'cinematic_studio_2_5', prompt, aspect_ratio: '3:4', resolution: '2k', count: 1 }),
       })
       if (!submitRes.ok) throw new Error(`Submit 실패: ${submitRes.status}`)
-      const { response_url, status_url } = await submitRes.json()
+      const job = await submitRes.json()
 
-      // 폴링
-      for (let i = 0; i < 60; i++) {
-        await new Promise(r => setTimeout(r, 2000))
-        const s = await fetch(status_url, { headers: { 'Authorization': `Key ${FAL_KEY}` } })
-        const { status } = await s.json()
-        if (status === 'COMPLETED') {
-          const r = await fetch(response_url, { headers: { 'Authorization': `Key ${FAL_KEY}` } })
-          const data = await r.json()
-          const url = data.images?.[0]?.url
+      for (let i = 0; i < 40; i++) {
+        await new Promise(r => setTimeout(r, 3000))
+        const s = await fetch(`https://mcp.higgsfield.ai/v1/generations/${job.id}`, {
+          headers: { 'Authorization': `Bearer ${API_KEY}` },
+        })
+        const data = await s.json()
+        if (data.status === 'completed') {
+          const url = data.results?.rawUrl
           if (!url) throw new Error('이미지 URL 없음')
           setImageUrl(url)
           setState('done')
           return
         }
-        if (status === 'FAILED') throw new Error('생성 실패')
+        if (data.status === 'failed') throw new Error('생성 실패')
       }
       throw new Error('타임아웃')
     } catch (e) {
@@ -72,23 +72,25 @@ function useFalImage() {
 }
 
 export function EconNewsCards() {
-  const { imageUrl, state, generate } = useFalImage()
+  const { imageUrl, state, generate } = useHiggsfieldImage()
+  const coverSrc = imageUrl ?? COVER_IMAGE
 
   return (
     <div className="cards-row" id="econ-news-cards">
 
       {/* ── 01 COVER ──────────────────────────────────────── */}
       <div className="card bg-noir grain scratch" style={{ position: 'relative', overflow: 'hidden' }}>
-        {/* AI 생성 이미지 또는 checker 배경 */}
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt="AI 생성 커버"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1, opacity: 0.7 }}
-          />
-        ) : (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 1 }} className="checker-noir" />
-        )}
+        <img
+          src={coverSrc}
+          alt="대한민국 경제 지형이 바뀐다"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1, opacity: 0.65 }}
+        />
+        <div
+          style={{
+            position: 'absolute', inset: 0, zIndex: 2,
+            background: 'linear-gradient(to bottom, rgba(0,0,0,.15) 0%, rgba(0,0,0,.6) 100%)',
+          }}
+        />
         <div
           className="pad"
           style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 5, position: 'relative' }}
@@ -102,20 +104,19 @@ export function EconNewsCards() {
                 경제 속보
               </span>
             </div>
-            <p className="mono" style={{ color: 'rgba(255,255,255,.5)', marginBottom: 8 }}>
-              2026.04.28 / 경제 핫뉴스 5선
+            <p className="mono" style={{ color: 'rgba(255,255,255,.55)', marginBottom: 8 }}>
+              2026.04.29 / 경제 핫뉴스 5선
             </p>
           </div>
           <div>
             <h2 className="display-xl" style={{ color: 'var(--paper)', lineHeight: 1 }}>
-              <span className="hl hl-shadow">세계 경제에</span>
-              <br />균열이
-              <br />생겼다
+              <span className="hl hl-shadow">대한민국</span>
+              <br />경제 지형이
+              <br />바뀐다
             </h2>
             <p className="body-m" style={{ color: 'rgba(255,255,255,.55)', marginTop: 20 }}>
-              OPEC 탈퇴 · 에너지 급등 · 금리 동결
+              신용등급 AA · 반도체 파업 · 유가 급등
             </p>
-            {/* AI 이미지 생성 버튼 */}
             <button
               onClick={() => generate(COVER_PROMPT)}
               disabled={state === 'loading'}
@@ -132,7 +133,7 @@ export function EconNewsCards() {
                 letterSpacing: '.05em',
               }}
             >
-              {state === 'idle' && '✦ AI 커버 생성'}
+              {state === 'idle' && '✦ AI 커버 재생성'}
               {state === 'loading' && '⟳ 생성 중…'}
               {state === 'done' && '✓ 재생성'}
               {state === 'error' && '⚠ 다시 시도'}
@@ -142,174 +143,163 @@ export function EconNewsCards() {
         <PageDots active={0} />
       </div>
 
-      {/* ── 02 UAE OPEC 탈퇴 ──────────────────────────────── */}
-      <div className="card bg-deep grain">
-        <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      {/* ── 02 S&P 한국 신용등급 AA ───────────────────────── */}
+      <div className="card bg-bone grain">
+        <div className="pad" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span className="stamp" style={{ transform: 'rotate(-4deg)' }}>BREAKING</span>
-            <span className="mono" style={{ color: 'rgba(255,255,255,.4)' }}>01 / 05</span>
+            <span className="stamp">S&P 공식 발표</span>
+            <span className="mono" style={{ color: 'rgba(0,0,0,.45)' }}>01 / 05</span>
           </div>
           <div>
-            <p className="mono" style={{ color: 'var(--mint)', marginBottom: 10 }}>OPEC 탈퇴</p>
-            <h3 className="display-l" style={{ color: 'var(--paper)', fontSize: 44 }}>
-              UAE, OPEC·OPEC+<br />전격 탈퇴 선언
+            <p className="mono" style={{ color: 'rgba(0,0,0,.5)', marginBottom: 12 }}>국가신용등급</p>
+            <h3 className="display-xl" style={{ color: 'var(--ink)', fontSize: 56, lineHeight: 1 }}>
+              한국 신용등급<br />
+              <span style={{ background: 'var(--mint)', padding: '0 .12em', boxShadow: '4px 4px 0 var(--ink)' }}>
+                AA 유지
+              </span>
             </h3>
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <p className="body-l" style={{ color: 'var(--paper)' }}>
-                <span className="hl">석유 카르텔 60년 구조에<br />균열이 생겼다</span>
-              </p>
-              <p className="body-m" style={{ color: 'rgba(255,255,255,.8)' }}>
-                5월 1일부터 공식 탈퇴. 사우디 주도 산유량 제한에서 벗어나 자국 에너지 생산을 독자적으로 확대.
-              </p>
-              <p className="mono" style={{ color: 'rgba(255,255,255,.45)' }}>
-                UAE 석유수출 = GDP의 75% — 호르무즈 봉쇄로 타격 받은 상태
-              </p>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <p className="body-l" style={{ color: 'var(--ink)' }}>
+              <span style={{ background: 'var(--acid)', padding: '2px 8px', boxDecorationBreak: 'clone' }}>
+                에너지 충격에도<br />반도체·재정 견고
+              </span>
+            </p>
+            <p className="body-m" style={{ color: 'rgba(0,0,0,.7)' }}>
+              S&P는 한국이 향후 3~4년 고소득 국가 평균 이상 성장률을 유지할 것으로 전망. 반도체 수출과 재정 건전성이 핵심 근거.
+            </p>
           </div>
         </div>
-        <PageDots active={1} />
+        <div className="pageno">
+          {Array.from({ length: TOTAL }).map((_, i) => (
+            <i key={i} className={i === 1 ? 'on' : ''} />
+          ))}
+        </div>
       </div>
 
-      {/* ── 03 세계은행 에너지가격 ────────────────────────── */}
+      {/* ── 03 반도체 파업 리스크 ─────────────────────────── */}
       <div className="card bg-noir grain scratch">
         <div
           style={{
             position: 'absolute', inset: 0, zIndex: 1,
-            background: 'radial-gradient(ellipse at 50% 90%, #2a2520 0%, #0a0a0d 70%)',
+            background: 'radial-gradient(ellipse at 50% 90%, #2a1818 0%, #0a0a0d 70%)',
           }}
         />
         <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 18, zIndex: 5 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <p className="mono" style={{ color: 'var(--acid)' }}>세계은행 경고</p>
+            <p className="mono" style={{ color: 'var(--blood)' }}>산업 리스크</p>
             <span className="mono" style={{ color: 'rgba(255,255,255,.4)' }}>02 / 05</span>
           </div>
-          <h3 className="display-l" style={{ color: 'var(--paper)', fontSize: 46 }}>
-            에너지 가격<br />
-            <span style={{ color: 'var(--acid)' }}>24%</span> 폭등 예고
+          <h3 className="display-l" style={{ color: 'var(--paper)', fontSize: 44, lineHeight: 1.1 }}>
+            반도체 파업<br />
+            <span style={{ color: 'var(--blood)' }}>"韓에만 있는</span><br />
+            리스크"
           </h3>
           <p className="body-l" style={{ color: 'var(--paper)' }}>
             <span
               className="hl"
-              style={{ '--mint': 'var(--acid)', '--mint-ink': '#1a1200' } as React.CSSProperties}
+              style={{ '--mint': 'var(--blood)', '--mint-ink': '#fff' } as React.CSSProperties}
             >
-              이란전쟁이 전 세계<br />물가 체계를 흔든다
+              국민 70%도<br />"노조 요구 무리"
             </span>
           </p>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flex: 1 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 6 }}>
-              <div className="arrow-down acid" style={{ height: 44 }} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <p className="body-m" style={{ color: 'rgba(255,255,255,.85)' }}>① 에너지 가격 폭등</p>
-              <p className="body-m" style={{ color: 'rgba(255,255,255,.85)' }}>② 식량 가격 상승</p>
-              <p className="body-m" style={{ color: 'rgba(255,255,255,.85)' }}>③ 고물가 장기화 → 금리 상승 압력</p>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p className="body-m" style={{ color: 'rgba(255,255,255,.85)' }}>
+              정부·각계 우려 쏟아지는데도 파업 주도 노조 지도부 행태 무책임 비판.
+            </p>
+            <p className="mono" style={{ color: 'rgba(255,255,255,.4)' }}>
+              반도체 = 수출 최대 효자 품목
+            </p>
           </div>
-          <p className="mono" style={{ color: 'rgba(255,255,255,.35)' }}>
-            — WB 수석이코노미스트 인더밋 길
-          </p>
         </div>
-        <div className="pageno" style={{ color: 'var(--acid)' }}>
+        <div className="pageno" style={{ color: 'var(--blood)' }}>
           {Array.from({ length: TOTAL }).map((_, i) => (
             <i key={i} className={i === 2 ? 'on' : ''} />
           ))}
         </div>
       </div>
 
-      {/* ── 04 한국은행 금리 동결 ─────────────────────────── */}
-      <div className="card bg-bone grain">
-        <div className="pad" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      {/* ── 04 고유가 대응 ────────────────────────────────── */}
+      <div className="card bg-deep grain">
+        <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span className="stamp">7연속 동결</span>
-            <span className="mono" style={{ color: 'rgba(0,0,0,.45)' }}>03 / 05</span>
+            <span className="stamp" style={{ transform: 'rotate(-4deg)' }}>정부 대응</span>
+            <span className="mono" style={{ color: 'rgba(255,255,255,.4)' }}>03 / 05</span>
           </div>
           <div>
-            <p className="mono" style={{ color: 'rgba(0,0,0,.5)', marginBottom: 12 }}>한국은행 금통위</p>
-            <h3 className="display-xl" style={{ color: 'var(--ink)', fontSize: 60 }}>
-              기준금리<br />
-              <span style={{ background: 'var(--mint)', padding: '0 .12em', boxShadow: '4px 4px 0 var(--ink)' }}>
-                동결
-              </span>{' '}
-              유지
+            <p className="mono" style={{ color: 'var(--acid)', marginBottom: 10 }}>에너지 긴급대책</p>
+            <h3 className="display-l" style={{ color: 'var(--paper)', fontSize: 40, lineHeight: 1.1 }}>
+              대통령<br />고유가 피해지원금<br />
+              <span style={{ color: 'var(--acid)' }}>주유소 제한<br />해제 검토</span>
             </h3>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p className="body-l" style={{ color: 'var(--ink)' }}>
-              <span style={{ background: 'var(--acid)', padding: '2px 8px', boxDecorationBreak: 'clone' }}>
-                중동 전쟁 파급력<br />일단 지켜본다
-              </span>
+            <p className="body-m" style={{ color: 'rgba(255,255,255,.8)' }}>
+              중동 전쟁 장기화 우려 속 에너지 물가 직접 지원 확대. 청와대, 지원 대상 주유소 제한 규정 완화 방침.
             </p>
-            <p className="body-m" style={{ color: 'rgba(0,0,0,.7)' }}>
-              전쟁 장기화 시 성장 하방 위험 확대. 경제 전망 경로 자체가 크게 바뀔 수 있다고 금통위원들이 경고했다.
+            <p className="mono" style={{ color: 'rgba(255,255,255,.4)' }}>
+              BNP파리바 "유가 배럴당 200달러 시나리오" 경고
             </p>
           </div>
         </div>
-        <div className="pageno">
-          {Array.from({ length: TOTAL }).map((_, i) => (
-            <i key={i} className={i === 3 ? 'on' : ''} />
-          ))}
-        </div>
+        <PageDots active={3} />
       </div>
 
-      {/* ── 05 비트코인 ───────────────────────────────────── */}
+      {/* ── 05 UAE OPEC 탈퇴 ──────────────────────────────── */}
       <div className="card bg-deep grain">
+        <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span className="stamp" style={{ transform: 'rotate(-2deg)' }}>BREAKING</span>
+            <span className="mono" style={{ color: 'rgba(255,255,255,.4)' }}>04 / 05</span>
+          </div>
+          <div>
+            <p className="mono" style={{ color: 'var(--mint)', marginBottom: 10 }}>에너지 패권 재편</p>
+            <h3 className="display-l" style={{ color: 'var(--paper)', fontSize: 44, lineHeight: 1.1 }}>
+              UAE, OPEC+<br />전격 탈퇴
+            </h3>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <p className="body-l" style={{ color: 'var(--paper)' }}>
+              <span className="hl">석유 카르텔 60년<br />사우디 주도 구조 흔들</span>
+            </p>
+            <p className="body-m" style={{ color: 'rgba(255,255,255,.8)' }}>
+              홍해·물류·금융 허브 경쟁에서 사우디와 충돌 잦아진 UAE, 독자 에너지 생산 확대 선택.
+            </p>
+            <p className="mono" style={{ color: 'rgba(255,255,255,.45)' }}>
+              한국 에너지 공급망 다각화 압박 가중
+            </p>
+          </div>
+        </div>
+        <PageDots active={4} />
+      </div>
+
+      {/* ── 06 비트코인 ───────────────────────────────────── */}
+      <div className="card bg-noir grain scratch">
         <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <p className="mono" style={{ color: 'rgba(255,255,255,.45)', letterSpacing: '.06em' }}>
-              CRYPTO · 04 / 05
+              CRYPTO · 05 / 05
             </p>
           </div>
-          <h3 className="display-l" style={{ color: 'var(--paper)', fontSize: 44 }}>
-            비트코인<br />
-            8만달러 재돌파<br />
-            <span style={{ color: 'var(--blood)' }}>'제동'</span>
+          <h3 className="display-l" style={{ color: 'var(--paper)', fontSize: 44, lineHeight: 1.1 }}>
+            비트코인<br />7만달러 재진입<br />
+            <span style={{ color: 'var(--blood)' }}>인플레이션에 발목</span>
           </h3>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <p className="body-l" style={{ color: 'var(--paper)' }}>
-                <span className="hl">7만6,500달러로 후퇴<br />인플레이션 우려가 발목</span>
+                <span className="hl">거시 불확실성 속<br />자금 이탈 우려</span>
               </p>
               <p className="body-m" style={{ color: 'rgba(255,255,255,.75)' }}>
-                3월 말 6만5,000달러에서 반등 이후 상승세를 이어왔지만 미국 경제지표 약세로 추가 강세 불투명.
+                전문가들, 단순 기술적 조정 넘어 유가 급등·물가 불안에 따른 본격 매도세 분석.
               </p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div className="cutout" style={{ width: 80, height: 60, transform: 'rotate(-3deg)' }}>
                 <span style={{ fontSize: 9 }}>CHART</span>
               </div>
-              <p className="mono" style={{ color: 'rgba(255,255,255,.4)' }}>$76,500 USD</p>
+              <p className="mono" style={{ color: 'rgba(255,255,255,.4)' }}>~$70,000 USD</p>
             </div>
-          </div>
-        </div>
-        <PageDots active={4} />
-      </div>
-
-      {/* ── 06 EU 구글 AI ─────────────────────────────────── */}
-      <div className="card bg-noir grain scratch">
-        <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <p className="mono" style={{ color: 'rgba(255,255,255,.4)', letterSpacing: '.06em' }}>
-              TECH · 05 / 05
-            </p>
-          </div>
-          <div>
-            <p className="mono" style={{ color: 'var(--mint)', marginBottom: 10 }}>플랫폼 경제 재편</p>
-            <h3 className="display-l" style={{ color: 'var(--paper)', fontSize: 46 }}>
-              EU, 구글에<br />'AI 개방'<br />압박 강화
-            </h3>
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p className="body-l" style={{ color: 'var(--paper)' }}>
-              <span className="hl">안드로이드 생태계<br />구조 변화 예고</span>
-            </p>
-            <p className="body-m" style={{ color: 'rgba(255,255,255,.75)' }}>
-              빅테크 폐쇄형 생태계를 얼마나 개방할 것인지 — 혁신과 규제 사이의 균형점을 찾는 싸움.
-            </p>
-            <p className="mono" style={{ color: 'rgba(255,255,255,.4)' }}>
-              단순 기업 경쟁이 아닌 플랫폼 경제 전반의 규칙 재정립
-            </p>
           </div>
         </div>
         <PageDots active={5} />
@@ -317,15 +307,11 @@ export function EconNewsCards() {
 
       {/* ── 07 CTA ────────────────────────────────────────── */}
       <div className="card bg-noir grain scratch" style={{ position: 'relative', overflow: 'hidden' }}>
-        {/* 배경 — 어두운 그라디언트 */}
         <div style={{
           position: 'absolute', inset: 0, zIndex: 1,
           background: 'radial-gradient(ellipse at 50% 40%, #1c2b1a 0%, #0a0a0d 65%)',
         }} />
-        {/* 체커 텍스처 (투명하게) */}
         <div style={{ position: 'absolute', inset: 0, zIndex: 2, opacity: 0.08 }} className="checker-noir" />
-
-        {/* 콘텐츠 — 세로 중앙 정렬 */}
         <div style={{
           position: 'relative', zIndex: 5,
           display: 'flex', flexDirection: 'column',
@@ -333,7 +319,6 @@ export function EconNewsCards() {
           height: '100%', padding: '48px 32px',
           textAlign: 'center', gap: 0,
         }}>
-          {/* 배지 */}
           <div style={{
             display: 'inline-block',
             background: 'var(--paper)',
@@ -348,8 +333,6 @@ export function EconNewsCards() {
           }}>
             ECON NEWS
           </div>
-
-          {/* 헤드라인 */}
           <h3 style={{
             color: 'var(--paper)',
             fontSize: 42,
@@ -358,10 +341,8 @@ export function EconNewsCards() {
             fontWeight: 900,
             marginBottom: 20,
           }}>
-            경제 트렌드는?<br />'에코노믹스'
+            경제 트렌드는?<br />'제이뉴스'
           </h3>
-
-          {/* 서브타이틀 */}
           <p style={{
             color: 'rgba(255,255,255,.65)',
             fontSize: 15,
@@ -371,10 +352,7 @@ export function EconNewsCards() {
             매일 쏟아지는 경제 핫뉴스<br />
             지금 팔로우하고 놓치지 마세요.
           </p>
-
-          {/* 액션 버튼 3개 */}
           <div style={{ display: 'flex', gap: 20 }}>
-            {/* 좋아요 */}
             <button style={{
               width: 58, height: 58, borderRadius: '50%',
               background: 'rgba(255,255,255,.1)',
@@ -387,7 +365,6 @@ export function EconNewsCards() {
                   stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            {/* 댓글 */}
             <button style={{
               width: 58, height: 58, borderRadius: '50%',
               background: 'rgba(255,255,255,.1)',
@@ -400,7 +377,6 @@ export function EconNewsCards() {
                   stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            {/* 저장 */}
             <button style={{
               width: 58, height: 58, borderRadius: '50%',
               background: 'rgba(255,255,255,.1)',
@@ -415,7 +391,6 @@ export function EconNewsCards() {
             </button>
           </div>
         </div>
-
         <div className="pageno">
           {Array.from({ length: TOTAL }).map((_, i) => (
             <i key={i} className={i === 6 ? 'on' : ''} />
